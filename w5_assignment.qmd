@@ -1,0 +1,108 @@
+---
+title: "W5 Assignment"
+author: "Eric Cheung"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+```
+
+```{r}
+#| message: false
+mylfs <- read_csv("pub0923.csv") |> 
+  filter(LFSSTAT == 1) |> 
+  mutate(provabrv = case_when(PROV == 48 ~ "AB",
+                              PROV == 24 ~ "QC",
+                              PROV == 47 ~ "SK",
+                              PROV == 13 ~ "NB",
+                              PROV == 11 ~ "PEI",
+                              PROV == 59 ~ "BC",
+                              PROV == 35 ~ "ON",
+                              PROV == 46 ~ "MT",
+                              PROV == 12 ~ "NS",
+                              PROV == 10 ~ "NL"))
+```
+
+```{r}
+mylfs |> ggplot(aes(y = HRLYEARN, x = EDUC)) + 
+  geom_point()
+```
+
+```{r}
+mylfs |> ggplot(aes(y = HRLYEARN, x = EDUC, group = EDUC)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = c(0, 10000))
+```
+
+```{r}
+mylfs |> ggplot(aes(y = HRLYEARN, x = EDUC)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "steelblue", fill = "steelblue")
+```
+
+```{r}
+mylfs |> ggplot(aes(y = HRLYEARN, x = EDUC)) + 
+  geom_point() +
+  geom_smooth(method = "lm", color = "steelblue", fill = "steelblue") +
+  geom_smooth(method = "loess", color = "red", se = FALSE)
+```
+
+```{r}
+ols1 <- lm(data = mylfs, HRLYEARN ~ EDUC)
+summary(ols1)
+```
+
+# a)
+
+Generally hourly earning tends to go up with more years of education. As predicted in the OLS regression hourly earning goes up by \$4.76 when education goes up by one unit which is observed in the plots above. Interestingly, hourly income goes up noticeably when education is at 4 or high which means that the individual has a post secondary diploma or certificate.
+
+# b)
+
+```{r}
+by_educ <- mylfs |> 
+  mutate(som_hs = if_else(EDUC == 1, 1, 0),
+         hs_grad = if_else(EDUC == 2, 1, 0),
+         som_ps = if_else(EDUC == 3, 1, 0),
+         cert = if_else(EDUC == 4, 1, 0),
+         bach = if_else(EDUC == 5, 1, 0),
+         abv_bach = if_else(EDUC == 6, 1, 0))
+
+ols2 <- lm(data = by_educ, HRLYEARN ~ som_hs + hs_grad + som_ps + cert + bach + 
+             abv_bach)
+summary(ols2)
+```
+
+```{r}
+library(broom)
+library(socviz)
+results <- tidy(ols2)
+results
+
+results2 <- subset(results, term %nin% "(Intercept)")
+results2
+```
+
+```{r}
+ggplot(results2, aes(x = term, y = estimate)) + 
+  geom_point() +
+  coord_flip()
+```
+
+Each further level of education comes with an increase in one's hourly earning from people that did not graduate high school. Even just finishing high school will increase earnings by \$2.70 on average and if one can earn a degree beyond a bachelor's their earnings will increase by a whopping \$23.96!
+
+```{r}
+ols3 <- lm(HRLYEARN ~ factor(EDUC), data = by_educ)
+summary(ols3)
+
+results3 <- tidy(ols3)
+results3 |> 
+  subset(term %nin% "(Intercept)") |> 
+  ggplot(aes(x = term, y = estimate)) +
+  geom_point() +
+  coord_flip()
+```

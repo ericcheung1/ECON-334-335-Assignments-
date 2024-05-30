@@ -1,0 +1,45 @@
+---
+title: "W2 Assignment"
+author: "Eric Cheung"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+# Section 1: My Data Visualization Example[^1]
+
+[^1]: <https://ca.finance.yahoo.com/news/apple-iphone-price-bump-part-004821895.html>
+
+![](images/w2_datavisualization.webp)
+
+*My article is titled "Apple's iPhone Price Bump Is Part of Subtle Revenue-Boosting Strategy" written by Mark Gurman.*
+
+*My data visualization is the first graph right the below the headline which plots the relationship between year on the x-axis and average revenue per device on the y-axis.*
+
+**The data visualization helps us understand how Apple's revenue per device has been going up over the years**
+
+**This data visualization avoids the issue of bad taste talked about in section 1.2.1 of SOCVIZ. It keeps the visualization simple while presenting all the information that is needed.**
+
+# Section 2: WDI
+
+```{r}
+library(WDI)
+library(tidyverse)
+
+GDP <- WDI(
+  country = c("MC"),
+  indicator = "NY.GDP.PCAP.KD",
+  start = 2002,
+  end = 2022,
+  extra = FALSE,
+  cache = NULL,
+  latest = NULL,
+  language = "en"
+)
+
+ggplot(data = GDP, mapping = aes(x = year, y = NY.GDP.PCAP.KD)) +
+  geom_line()
+```
+
+GDP in Monaco has been increasing in between the years of 2002 and 2022 but with noticeable decreases around 2008 and 2020.

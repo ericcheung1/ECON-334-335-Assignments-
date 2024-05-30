@@ -1,0 +1,70 @@
+---
+title: "W3 Assignment"
+author: "Eric Cheung"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+# 2023 Vancouver Crime Data
+
+```{r}
+crimedata <- read_csv("crimedata_csv_AllNeighbourhoods_2023.csv")
+crimedata
+```
+
+This data describes all the crimes that were reported to the Vancouver Police Department in 2023. Each row is a crime reported and contains the time, location and type of crime which means that there were 26,543 crimes documented in the above data frame.
+
+# Crimes on January 25th, 2023
+
+```{r}
+jan_25_crimes <- crimedata |> 
+  filter(YEAR == 2023, MONTH == 1, DAY == 25)
+
+jan_25_crimes
+```
+
+There were 90 crimes reported to the VPD on my birthday on January 25th, 2023. I can tell because I used the filter() function to only view observations if the year equaled 2023, month equaled 1, and day equaled 25. And the resulting data frame returned 90 rows with each row being a reported crime.
+
+# FIG 1:
+
+```{r}
+jan_25_crimes |> 
+  group_by(TYPE) |> 
+  summarize(COUNT = n()) |> 
+  ggplot(aes(x = TYPE, y = COUNT)) + 
+  geom_col() +
+  coord_flip()
+```
+
+The most common crime reported on my birthday was "Theft from Vehicle" and "Other Theft". The least common was "Vehicle Collision or Pedestrian Struck (with injury)". Theft could be most common due to it being comparatively low risk without much punishment if caught and low probability of being caught. And vehicle collision being the least common could be because people are generally good drivers.
+
+# FIG 2:
+
+```{r}
+two_typeof_crimes <- crimedata |> 
+  filter(TYPE == "Other Theft" | 
+      TYPE == "Offence Against a Person", 
+    MONTH %in% c(1:8)) |> 
+  group_by(TYPE, YEAR, MONTH, DAY) |> 
+  summarise(COUNT = n()) |> 
+  mutate(DATE = make_date(YEAR, MONTH, DAY))
+
+two_typeof_crimes
+
+two_typeof_crimes |> 
+  ggplot(aes(x = DATE, y = COUNT, color = TYPE)) +
+  geom_line() +
+  labs(
+    title = "Offence Against a Person & Other Theft in 2023",
+    x = "Date",
+    y = "Amount Reported"
+  )
+```
+
+There is much more variation in the amount of *Other Theft* reported from day-to-day. Whereas *Offence Against a Person* has a similar amount reported each day in comparison. Another pattern is that *Other Theft* is the more common crime as there were very few days where there were more *Offence Against a Person* reported.

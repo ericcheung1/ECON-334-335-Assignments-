@@ -1,0 +1,124 @@
+---
+title: "W4 Assignment"
+author: Eric Cheung
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+```
+
+------------------------------------------------------------------------
+
+# Section 1
+
+```{r}
+#| message: false
+labourdata <- read_csv("pub0923.csv")
+labourdata 
+```
+
+This data contains the responses to a survey about the Canadian labor force. I got it from Statistics Canada's website. Each observation represents a worker that took the survey and their responses to each of the questions. The information included in the data include the individuals location, education history, the industry they work in, and etc. There are a total of 108,982 observations contained in the data.
+
+------------------------------------------------------------------------
+
+# Section 2
+
+```{r}
+by_prov <- labourdata |> 
+  filter(LFSSTAT == 1) |> 
+  mutate(PROVINCE_NAME = if_else(PROV == 59, "BRITISH COLUMBIA", ""),
+         PROVINCE_NAME = if_else(PROV == 48, "ALBERTA", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 47, "SASKATCHEWAN", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 46, "MANITOBA", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 35, "ONTARIO", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 24, "QUEBEC", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 10, "NEWFOUNDLAND AND LABRADOR",
+                                 PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 11, "PRINCE EDWARD ISLAND",
+                                 PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 13, "NEWBRUNSWICK", PROVINCE_NAME),
+         PROVINCE_NAME = if_else(PROV == 12, "NOVA SCOTIA", PROVINCE_NAME)
+         )
+```
+
+------------------------------------------------------------------------
+
+# Section 3
+
+```{r}
+ggplot(by_prov, aes(x = PROVINCE_NAME)) + 
+  geom_bar(aes(y = after_stat(prop), group = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Proportion of responses to labour market survey from each province",
+    x = "Province",
+    y = "Proportion"
+  )
+```
+
+There are the most observation from the province of Ontario. They take up nearly a third of the responses because they are the most populated province by far. Quebec makes up nearly 20% of the responses again because they are the second most populated province. The three most populated provinces have the three highest proportion of responses.
+
+```{r}
+by_immi <- by_prov |> 
+  mutate(
+    IMMITYPE = if_else(IMMIG == 1, "Recent", ""),
+    IMMITYPE = if_else(IMMIG == 2, "Seasoned", IMMITYPE),
+    IMMITYPE = if_else(IMMIG == 3, "Native", IMMITYPE)
+  )
+
+ggplot(by_immi, aes(x = PROVINCE_NAME, fill = IMMITYPE)) +
+  geom_bar(position = "fill") +
+  scale_fill_discrete(name = "Immigrant Type") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Proportion of immigrant type from each province",
+    x = "Province",
+    y = "Porportion"
+  )
+```
+
+The provinces with the most proportion of immigrants employed is British Columbia and Ontario with the prairie provinces close behind. The large population centers of Toronto and Vancouver are more easily able to attract immigrants compared provinces without large cities.
+
+------------------------------------------------------------------------
+
+# Section 4
+
+```{r}
+forever_single <- labourdata |> 
+  filter(MARSTAT == 6)
+
+forever_single
+```
+
+For my subgroup I chose individuals that are single and were never married. I chose this subgroup because I am someone who would be categorized in this group. :( I then will visualize their usual hourly wage variable.
+
+```{r}
+forever_single |> 
+  ggplot(aes(x = HRLYEARN)) +
+  geom_histogram()
+```
+
+From the histogram of single and never married people's usual hourly wage I learned that a majority of single people earn a very respectable usual hourly wage of around \$25 per hour. There are around 5000 single and never married individuals that earn around \$25 per hour from over 16,713 observations that could be plotted.
+
+```{r}
+forever_single |> 
+  ggplot(aes(x = HRLYEARN)) + 
+  geom_density()
+```
+
+From the density plot I can see that the distribution for usual hourly wage for single and never married people has many outlier values that are greater than the mean but barely any that are below the mean in comparison.
+
+```{r}
+forever_single |> 
+  ggplot(aes(x = HRLYEARN)) +
+  geom_boxplot()
+```
+
+From looking at the box-plot I can see that there are many outlier values. The outlier values are better represented in a box-plot as they are shown as individual dots whereas on the histogram the bar is often too short to been seen and on the density it is represented as a long right tail to the distribution.
+
+------------------------------------------------------------------------

@@ -1,0 +1,100 @@
+---
+title: "W6 Assignment"
+author: "Eric Cheung"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+## Section 1
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(vtable)
+library(modelr)
+library(broom)
+```
+
+```{r}
+#| message: false
+crimedata <- read_csv("crimedata_csv_all_years.csv") |> 
+  filter(YEAR < 2020) |> 
+  mutate(date = make_date(YEAR, MONTH, DAY)) |> 
+  group_by(date, MONTH, TYPE) |> 
+  summarise(crimes = n()) |> 
+  ungroup() |> 
+  complete(date, TYPE) |> 
+  mutate(crimes = if_else(is.na(crimes), 0, crimes)) |> 
+  filter(TYPE == "Other Theft" | TYPE == "Theft of Vehicle") |> 
+  pivot_wider(names_from = TYPE, values_from = crimes)
+
+sumtable(crimedata)
+```
+
+On average there is much more other theft compared to theft of vehicle as the mean for the former is 29 compared to the latter of 6.7. There is more variation on the number of other theft as its standard deviation is a little higher than vehicle theft. Also of note is that there was not one day where other theft wasn't committed as the min was 6 while for vehicle theft it was 0.
+
+# Section 2
+
+```{r}
+#| message: false
+weather <- read_csv("weather.csv")
+holidays <- read_csv("BCholidays.csv") |> 
+  mutate(date = make_date(YEAR, MONTH, DAY)) |> 
+  select(holidayname, date)
+
+holiday_crimedata <- crimedata |> 
+  left_join(holidays, join_by(date)) |> 
+  mutate(holiday = if_else(is.na(holidayname), 0, 1)) |> 
+  mutate(holidayname = if_else(is.na(holidayname), "Not Holiday", holidayname))
+
+wh_crimedata <- holiday_crimedata |> 
+  left_join(weather, join_by(date)) |> 
+  select(c(1:6), max_temperature, min_temperature, 
+         max_wind_speed, precipitation) |> 
+  mutate(dayofweek = wday(date))
+
+sumtable(wh_crimedata)
+```
+
+# Section 3
+
+```{r}
+ggplot(wh_crimedata, aes(x = max_temperature, y = `Theft of Vehicle`)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE)
+```
+
+The number of vehicle theft each day is contained in a small set of values going from 0 to around 40. Meaning there were many days where there were 20 or 22 vehicles reported missing which on the graph makes it look as if the points appear on a horizontal line.
+
+```{r}
+reg1 <- lm(data = wh_crimedata, `Other Theft` ~ max_temperature)
+summary(reg1)
+```
+
+```{r}
+reg2 <- lm(data = wh_crimedata, `Other Theft` ~ max_temperature + max_wind_speed + precipitation + as.factor(dayofweek) + as.factor(MONTH) + holiday)
+summary(reg2)
+```
+
+```{r}
+add_residuals(wh_crimedata, reg1, var = "resid") |> 
+  summarise(mse1 = mean(resid^2, na.rm = TRUE))
+add_residuals(wh_crimedata, reg2, var = "resid") |> 
+  summarise(mse2 = mean(resid^2, na.rm = TRUE))
+```
+
+The second regression has the lower MSE.
+
+```{r}
+reg2tidy <- tidy(reg2, conf.int = TRUE)
+reg2tidy
+
+ggplot(reg2tidy, aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  geom_pointrange() +
+  coord_flip()
+```
+
+There is not much of a relationship between max temperature and vehicle theft. As seen from the regression results there is only 0.189 increase on vehicle theft when there is a increase of 1 in max temperature. It also shows on the graph above as max temperature is in the middle in terms of its relationship to vehicle theft. Day of week 6 has the highest rate of vehicle theft which corresponds to Fridays.

@@ -1,0 +1,76 @@
+---
+title: "W7 Assignment"
+author: "Eric Cheung"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(maps)
+library(tidycensus)
+library(tigris)
+```
+
+## Map 1 - The Minimum Wage in the United States, 2023
+
+```{r}
+#| message: false
+usmap <- map_data("state")
+usminwages <- read_csv("usminimumwages.csv")
+usminwages
+```
+
+I created the "usminimumwages.csv" using data from a statista.com[^1] page titled "*Minimum wage rates in the United States in 2023, by state(in U.S. dollars)*". It describes each state's minimum wage at the state-level as well as exceptions to them. As the minimum wage could vary a lot due to the number of employees, amount of profit as well as a large number of other variables, I have only included the general state minimum wages. Also note that a few states does not have a minimum wage at the state level and follow the federal minimum of \$7.25.
+
+[^1]: <https://www.statista.com/statistics/238997/minimum-wage-by-us-state/>
+
+    Titled: **Minimum wage rates in the United States in 2023, by state(in U.S. dollars)**
+
+```{r}
+usmapwage <- usminwages |> 
+  mutate(region = tolower(State)) |> 
+  right_join(usmap, join_by(region))
+
+ggplot(usmapwage, aes(x = long, y = lat)) +
+  geom_polygon(aes(group = group, fill = `Minimum Wage`)) +
+  coord_map() +
+  theme_void() +
+  labs(caption = "States in grey represent no state-level minimum wage")
+```
+
+The lower minimum wages are generally in the south or in the middle regions of the country. The higher wages are located on the west coast and in the northeast. The west coast and northeast contain large cities such as New York City and Los Angeles and therefore have higher costs of living. The states in the south and in middle America generally are poorer compared to the states/cities mention before.
+
+## Map 2 - Mapping data from the US Census
+
+```{r}
+readRenviron("~/.Renviron")
+
+list <- load_variables(2000, dataset = "sf1", cache = TRUE)
+# H003003, Total!!Vacant, OCCUPANCY STATUS [3]
+options(tigris_use_cache = TRUE)
+
+vacant <- get_decennial(
+  geography = "county",
+  variables = "H003003",
+  year = 2000,
+  geometry = TRUE,
+  resolution = "20m"
+  ) |> 
+  shift_geometry() |> 
+  mutate(vacant = value/10000)
+
+ggplot(vacant) +
+  geom_sf(aes(fill = vacant)) +
+  scale_fill_gradient(low = "white", high = "gold") +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  labs(title = "2000 Vacant Homes in the US by County",
+       fill = "Vacancies (x 10,000)")
+```
+
+I chose to depict he number of vacant homes in each county from the 2000 decennial census's summary file 1. There are many vacant homes in the Los Angeles area and surrounding counties. Also in the Phoenix area. Other than those 2 hotbeds there are some in south Florida, Houston area, and Seattle area as well as many others that are scattered all around.
